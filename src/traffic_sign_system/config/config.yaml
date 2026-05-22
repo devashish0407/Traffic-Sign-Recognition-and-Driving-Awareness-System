@@ -1,0 +1,69 @@
+project:
+  name: "Traffic Sign Recognition and Hazard Prediction"
+  version: "1.0.0"
+
+paths:
+  data_root: "data/"
+  raw: "data/raw/"
+  processed: "data/processed/"
+  yolo_data: "data/yolo_data.yaml"
+  checkpoints: "artifacts/checkpoints/"
+  logs: "artifacts/logs/"
+  yolo_weights: "artifacts/checkpoints/yolo_tsr.pt"
+  cnn_weights: "artifacts/checkpoints/cnn_classifier.pt"
+  yolo_base_model: "artifacts/models/yolov8n.pt"
+
+dataset:
+  name: "GTSRB"
+  num_classes: 43
+  image_size: 224
+  train_split: 0.8
+  val_split: 0.1
+  test_split: 0.1
+
+yolo:
+  base_model: "artifacts/models/yolov8n.pt"
+  img_size: 416
+  conf_threshold: 0.5
+  iou_threshold: 0.50
+  epochs: 80
+  batch_size: 8
+  patience: 15
+  device: "auto"
+
+cnn:
+  backbone: "resnet50"
+  img_size: 224
+  epochs: 45
+  batch_size: 8
+  learning_rate: 0.0005
+  weight_decay: 0.0001
+  dropout: 0.3
+  patience: 8
+  device: "auto"
+
+augmentation:
+  random_brightness: 0.2
+  random_contrast: 0.2
+  random_rotation: 10
+  horizontal_flip: false
+  gaussian_noise: true
+  motion_blur: true
+  perspective: true
+
+inference:
+  target_fps: 30
+  camera_index: 0
+  frame_buffer_size: 5
+  smoothing_window: 3
+  classification_frame_skip: 2
+
+dashboard:
+  host: "0.0.0.0"
+  port: 5000
+  debug: false
+
+hazard:
+  alert_cooldown_sec: 3
+  audio_enabled: true
+  tts_enabled: true

@@ -1,0 +1,47 @@
+# Data and generated assets
+data/raw/gtsrb/*.zip
+data/raw/gtsrb/GTSRB/
+data/processed/
+
+# Runtime artifacts
+artifacts/checkpoints/*.pt
+artifacts/checkpoints/*.pth
+artifacts/logs/
+artifacts/models/*.pt
+
+# Legacy artifact locations
+checkpoints/
+logs/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.pytest_cache/
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv/
+
+# IDE and OS files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+# Videos
+*.mp4
