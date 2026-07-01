@@ -62,8 +62,10 @@ def main():
         print(f"[Run] Starting dashboard at http://{args.host}:{args.port}")
         run_dashboard(pipeline, host=args.host, port=args.port)
     else:
-        print("[Run] Starting OpenCV window. Press 'q' to quit.")
-        pipeline.run()
+        from traffic_sign_system.interfaces.dashboard import run_dashboard
+
+        print(f"[Run] Starting dashboard at http://{args.host}:{args.port}")
+        run_dashboard(pipeline, host=args.host, port=args.port)
 
 if __name__ == "__main__":
     main()
