@@ -184,6 +184,10 @@ async function stopStreamBackend() {
   el.videoProcessingOngoing.classList.add('hidden');
   el.videoCompletedOverlay.classList.add('hidden');
   el.feedIdleOverlay.classList.remove('hidden');
+}
+
+function stopStream(onSourceChange) {
+  isStreaming = false;
   
   el.tabLive.classList.remove('active');
   el.tabUpload.classList.remove('active');
