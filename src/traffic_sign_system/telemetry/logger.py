@@ -10,11 +10,17 @@ from traffic_sign_system.paths import project_path
 
 class PipelineLogger:
 
-    def __init__(self, log_dir: str = "logs/"):
+    def __init__(self, log_dir: str = "logs/", session_id: str = None):
         log_dir = project_path(log_dir)
         Path(log_dir).mkdir(parents=True, exist_ok=True)
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        self._csv_path = Path(log_dir) / f"session_{timestamp}.csv"
+        
+        if session_id:
+            filename = f"session_{session_id}.csv"
+        else:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"session_{timestamp}.csv"
+            
+        self._csv_path = Path(log_dir) / filename
         self._file = open(self._csv_path, "w", newline="")
         self._writer = csv.writer(self._file)
         self._writer.writerow([

@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Traffic Lens — Computer Vision Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../static/css/main.css">
+</head>
+<body>
+
+  <!-- Fullscreen Initial Loader -->
+  <div id="page-loader" class="page-loader">
+    <div class="loader-inner">
+      <div class="loader-logo">TL</div>
+      <div class="loader-track"><div class="loader-bar"></div></div>
+      <p>Initializing Inference Engines...</p>
+    </div>
+  </div>
+
+  <!-- Navigation Bar -->
+  <nav class="nav" id="nav">
+    <div class="container nav-inner">
+      <a href="#hero" class="nav-logo">
+        <span class="logo-mark">TL</span>
+        <span class="logo-text">Traffic Lens</span>
+      </a>
+      <div class="nav-links" id="nav-links">
+        <a href="#hero" class="nav-link active">Home</a>
+        <a href="#operations" class="nav-link">Operations</a>
+        <a href="#analytics" class="nav-link">Results</a>
+        <a href="#footer" class="nav-link">Contact</a>
+      </div>
+      <a href="https://github.com/devashish0407/Traffic-Sign-Recognition-and-Driving-Awareness-System" target="_blank" rel="noopener" class="btn-repo">Repository</a>
+      <button class="nav-burger" id="nav-burger" aria-label="Toggle Menu">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero" id="hero">
+    <div class="container">
+      <div class="version-badge">
+        <span class="v-dot"></span>v2.4.0 Live Inference Engine
+      </div>
+      <h1 class="hero-title">
+        Computer Vision for<br>
+        <span class="grad-blue">Real-Time Traffic</span>
+        <span class="grad-green">Analytics</span>
+      </h1>
+      <p class="hero-sub">
+        Analyze dashcam feeds, detect road hazards, monitor active threats, and export telemetry logs instantly. Built for modern traffic engineering and safety analytics.
+      </p>
+      <a href="#operations" class="btn-hero">
+        Get Started
+        <span>Dashboard</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- Project Flow & Features Description Section -->
+  <section class="project-flow" id="project-flow">
+    <div class="container">
+      <div class="flow-header">
+        <h2>System Architecture & Pipeline Flow</h2>
+        <p>Trace the workflow of the Traffic Lens computer vision threat detection engine</p>
+      </div>
+      
+      <div class="flow-timeline">
+        <!-- Snake timeline spine -->
+        <div class="timeline-spine"></div>
+        
+        <!-- Step 1: Right -->
+        <div class="timeline-item right">
+          <div class="timeline-dot">1</div>
+          <div class="timeline-content">
+            <h3>Telemetry Feed Ingestion</h3>
+            <p>Select between live hardware camera streams or local video recording files (supporting up to 200 MB sizes) in the dashboard panel.</p>
+          </div>
+        </div>
+        
+        <!-- Step 2: Left -->
+        <div class="timeline-item left">
+          <div class="timeline-dot">2</div>
+          <div class="timeline-content">
+            <h3>Dynamic Spatial Scaling</h3>
+            <p>Normalizes input frames to a uniform 640x480 resolution. This optimizes model tensor execution and keeps processing speeds high.</p>
+          </div>
+        </div>
+        
+        <!-- Step 3: Right -->
+        <div class="timeline-item right">
+          <div class="timeline-dot">3</div>
+          <div class="timeline-content">
+            <h3>YOLOv8 Boundary Detection</h3>
+            <p>A deep neural network detects sign boundary boxes in real-time, matching objects with a confidence score above a 0.50 threshold.</p>
+          </div>
+        </div>
+        
+        <!-- Step 4: Left -->
+        <div class="timeline-item left">
+          <div class="timeline-dot">4</div>
+          <div class="timeline-content">
+            <h3>Secondary Classification Crop</h3>
+            <p>Crops boundary boxes and runs a fine-grained secondary classifier model to identify speed limits, stops, yields, and warnings.</p>
+          </div>
+        </div>
+
+        <!-- Step 5: Right -->
+        <div class="timeline-item right">
+          <div class="timeline-dot">5</div>
+          <div class="timeline-content">
+            <h3>Hazard & Alert Evaluation</h3>
+            <p>Calculates caution flags and emits alert levels. Applies temporal smoothing and sign cooldown parameters to avoid message spam.</p>
+          </div>
+        </div>
+
+        <!-- Step 6: Left -->
+        <div class="timeline-item left">
+          <div class="timeline-dot">6</div>
+          <div class="timeline-content">
+            <h3>Telemetry Logs & Analytics</h3>
+            <p>Feeds analytics trends to Chart.js charts and organizes real-time logs, which are exportable to downloadable CSV reports.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Operations Section -->
+  <section class="operations" id="operations">
+    <div class="container">
+
+      <!-- Section Header -->
+      <div class="ops-header">
+        <div>
+          <h2>Operations Dashboard</h2>
+          <p>Manage streams, upload recordings, and inspect live computer vision telemetry.</p>
+        </div>
+        <div class="sys-status">
+          <div class="sys-indicator">
+            <span class="sys-dot" id="sys-dot"></span>
+            <span id="sys-label">SYSTEM INACTIVE</span>
+          </div>
+          <div class="sys-fps">FPS: <span id="header-fps">--</span></div>
+        </div>
+      </div>
+
+      <!-- Main Columns Grid -->
+      <div class="dashboard-grid">
+
+        <!-- LEFT COLUMN: Input & Detected Signs -->
+        <div class="card" id="card-input">
+          <div class="card-header">
+            <span class="card-label">Input Controller</span>
+            <span class="conf-label" style="text-transform: none; color: #818cf8; font-family: var(--font-mono);">Source: Video</span>
+          </div>
+
+          <!-- Tabs control -->
+          <div class="source-tabs">
+            <button class="stab" id="tab-live" data-tab="live">Live Camera</button>
+            <button class="stab" id="tab-upload" data-tab="upload">Upload Video</button>
+          </div>
+
+          <!-- Video Panels -->
+          <div class="panel" id="panel-live">
+            <div class="vid-wrap">
+              
+              <!-- Idle Feed Overlay (Visible on Load) -->
+              <div class="idle-overlay" id="feed-idle-overlay">
+                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); margin-bottom: 8px;"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="22" y2="7"></line><line x1="2" y1="17" x2="22" y2="17"></line></svg>
+                <p>System Offline</p>
+                <span style="font-size: 0.75rem; color: var(--text-muted); max-width: 280px; display: block; margin: 0 auto;">Select camera feed or upload a video clip above to begin telemetry analysis.</span>
+              </div>
+              
+              <!-- Permission Request Overlay -->
+              <div class="permission-overlay hidden" id="camera-permission-denied">
+                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); margin-bottom: 8px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                <p>Live camera feed is disabled.</p>
+                <button class="btn-dz" id="btn-grant-camera" style="margin-top: 8px;">Enable Camera Feed</button>
+              </div>
+
+              <!-- Processing Ongoing Overlay -->
+              <div class="processing-overlay hidden" id="video-processing-ongoing">
+                <div class="loader-inner">
+                  <div class="loader-track" style="width: 120px; margin-bottom: 12px; margin-left: auto; margin-right: auto;"><div class="loader-bar"></div></div>
+                  <h3 style="color: #6366f1; text-shadow: var(--glow-blue); font-size: 1.25rem; font-weight: 800; margin-bottom: 6px;">Processing Ongoing</h3>
+                  <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 16px;">Analyzing computer vision telemetry...</p>
+                  <div class="processing-stats" style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted);">
+                    Frames: <span id="proc-frames" style="color: var(--text-primary); font-weight: 700;">0</span> | 
+                    FPS: <span id="proc-fps" style="color: var(--color-active); font-weight: 700;">--</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Video Completed Summary Overlay -->
+              <div class="completed-overlay hidden" id="video-completed-overlay">
+                <h3>Processing Completed</h3>
+                <div class="completed-summary">
+                  <div class="cs-item"><span class="cs-lbl">Frames</span><span class="cs-val" id="cs-frames">--</span></div>
+                  <div class="cs-item"><span class="cs-lbl">Avg FPS</span><span class="cs-val" id="cs-fps">--</span></div>
+                  <div class="cs-item"><span class="cs-lbl">Signs</span><span class="cs-val" id="cs-signs">--</span></div>
+                  <div class="cs-item"><span class="cs-lbl">Alerts</span><span class="cs-val" id="cs-alerts">--</span></div>
+                </div>
+                <button class="btn-dz" id="btn-restart-stream" style="margin-top: 8px;">Restart Feed</button>
+              </div>
+
+              <div class="vid-badge-live"><span class="rec-dot"></span>LIVE FEED</div>
+              <div class="vid-coords" id="vid-coords">INITIALIZING...</div>
+              <div class="vid-badge-fps" id="vid-fps-badge">-- FPS</div>
+            </div>
+          </div>
+
+          <div class="panel hidden" id="panel-upload">
+            <div class="dropzone" id="dropzone">
+              <div class="dz-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+              </div>
+              <p class="dz-main">Drag and drop dashcam MP4</p>
+              <p class="dz-hint">Maximum file size: 200 MB</p>
+              <button class="btn-dz" id="btn-dz">Browse Files</button>
+              <input type="file" id="file-input" accept="video/*">
+              <div class="dz-progress hidden" id="dz-progress">
+                <div class="dz-fill" id="dz-fill"></div>
+              </div>
+              <p class="dz-status hidden" id="dz-status"></p>
+            </div>
+          </div>
+
+          <div class="card-divider"></div>
+
+          <!-- Detected Signs Panel -->
+          <div class="signs-section">
+            <div class="signs-header">
+              <span class="card-label">Detected Signs</span>
+              <span class="count-badge" id="signs-count">0 active</span>
+            </div>
+            
+            <ul class="signs-list" id="signs-list"></ul>
+            <p class="empty-msg hidden" id="no-signs">No signs detected in the current frames</p>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: Frame Analysis & Active Threats -->
+        <div class="right-col">
+
+          <!-- Frame Analysis Card -->
+          <div class="card" id="card-frame">
+            <div class="card-header">
+              <span class="card-label">Frame Analysis Overlay</span>
+              <span class="conf-label"><span class="conf-dot"></span>Confidence Threshold: &gt; 0.50</span>
+            </div>
+            <div class="frame-wrap">
+              <!-- Idle Visualizer Overlay (SYSTEM OFFLINE) -->
+              <div class="idle-overlay" id="visualizer-idle-overlay">
+                <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--text-muted); margin-bottom: 8px;">
+                  <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+                  <line x1="7" y1="2" x2="7" y2="22"></line>
+                  <line x1="17" y1="2" x2="17" y2="22"></line>
+                  <line x1="2" y1="12" x2="22" y2="12"></line>
+                  <line x1="2" y1="7" x2="22" y2="7"></line>
+                  <line x1="2" y1="17" x2="22" y2="17"></line>
+                </svg>
+                <p>SYSTEM OFFLINE</p>
+              </div>
+
+              <img id="frame-snap" src="/api/frame" alt="Frame Snapshot Analysis">
+              <div class="frame-overlay" id="frame-overlay">
+                <span class="frame-conf" id="frame-conf">CONFIDENCE: --</span>
+                <span class="frame-infer" id="frame-infer">-- ms</span>
+              </div>
+              
+              <!-- Live Playback Control Overlays -->
+              <div class="stream-controls hidden" id="stream-controls">
+                <button class="ctrl-btn stop-btn" id="ctrl-stop" title="End Stream">
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="margin-right: 6px;"><rect x="4" y="4" width="16" height="16" rx="2"></rect></svg>
+                  End Stream
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Threats Card -->
+          <div class="card" id="card-threats">
+            <div class="card-header">
+              <span class="card-label">Active Threats &amp; Alerts</span>
+            </div>
+            <div class="threats-body">
+              <div class="threats-grid" id="threats-grid"></div>
+              <p class="empty-msg hidden" id="no-threats">No hazards or driving threats detected</p>
+            </div>
+          </div>
+
+          <!-- Free Dashcam Resources Card (Red Box) -->
+          <div class="card" id="card-samples">
+            <div class="card-header">
+              <span class="card-label">Free Dashcam Resources</span>
+            </div>
+            <div class="sample-links-body" style="padding: 16px;">
+              <p class="sample-links-desc" style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.45;">Need traffic dashcam recordings to test the classification telemetry? Download free clips from these libraries:</p>
+              <div class="sample-urls">
+                <a href="https://www.pexels.com/search/video/dashcam/" target="_blank" rel="noopener">Pexels Dashcam Videos</a>
+                <a href="https://pixabay.com/videos/search/road/" target="_blank" rel="noopener">Pixabay Road Videos</a>
+                <a href="https://vimeo.com/search?q=dashcam" target="_blank" rel="noopener">Vimeo Dashcam Videos</a>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Statistics Dashboard Row -->
+      <div class="stats-row">
+        <!-- Stat Item 1 -->
+        <div class="stat-card">
+          <div class="stat-inner" id="s1">
+            <div class="stat-label">Frames Per Second</div>
+            <div class="stat-val"><span id="stat-fps">--</span> <span class="stat-tag stable">▲ Stable</span></div>
+          </div>
+        </div>
+        <!-- Stat Item 2 -->
+        <div class="stat-card">
+          <div class="stat-inner" id="s2">
+            <div class="stat-label">Current Frame Signs</div>
+            <div class="stat-val"><span id="stat-signs">0</span> <span class="stat-tag cyan">● Active</span></div>
+          </div>
+        </div>
+        <!-- Stat Item 3 -->
+        <div class="stat-card">
+          <div class="stat-inner" id="s3">
+            <div class="stat-label">Active Alerts</div>
+            <div class="stat-val warn"><span id="stat-alerts">0</span> <span class="stat-tag amber">● Warning</span></div>
+          </div>
+        </div>
+        <!-- Stat Item 4 -->
+        <div class="stat-card">
+          <div class="stat-inner" id="s4">
+            <div class="stat-label">Total Processed</div>
+            <div class="stat-val"><span id="stat-total">0</span> <span class="stat-tag">Frames</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Analytics section -->
+  <section class="analytics" id="analytics">
+    <div class="container">
+      <div class="analytics-badge">Analytics Pipeline</div>
+      <div class="analytics-header">
+        <div>
+          <h2>Traffic Density &amp; Analytics</h2>
+          <p>Aggregated computer vision telemetry showing vehicle tracking and hazard rates.</p>
+        </div>
+        <button class="btn-primary" id="btn-csv">Export Session Telemetry (CSV)</button>
+      </div>
+
+      <div class="card chart-card">
+        <div class="chart-header">
+          <span>Real-Time Pipeline Telemetry (Detections &amp; Hazards)</span>
+          <div class="chart-legend">
+            <span class="leg cars">● Cars</span>
+            <span class="leg trucks">● Trucks</span>
+            <span class="leg peds">● Peds</span>
+            <span class="leg signs">● Active Signs</span>
+            <span class="leg caution">● Cautions</span>
+            <span class="leg critical">● Critical Threats</span>
+          </div>
+        </div>
+        <div class="chart-body">
+          <canvas id="traffic-chart"></canvas>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer" id="footer">
+    <div class="container footer-inner">
+      <div class="footer-logo">
+        <span class="logo-mark sm">TL</span>
+        <span>Traffic Lens</span>
+      </div>
+      <div class="footer-contact">
+        <a href="https://www.linkedin.com/in/devashish-s-81aa06251/" target="_blank" rel="noopener" class="footer-social-link" aria-label="LinkedIn">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="vertical-align: middle; margin-right: 4px;"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.779-1.75-1.75s.784-1.75 1.75-1.75 1.75.779 1.75 1.75-.784 1.75-1.75 1.75zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+          LinkedIn
+        </a>
+        <a href="https://github.com/devashish0407" target="_blank" rel="noopener" class="footer-social-link" aria-label="GitHub">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style="vertical-align: middle; margin-right: 4px;"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          GitHub
+        </a>
+        <a href="mailto:devashish0716@gmail.com" class="footer-social-link" aria-label="Gmail">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 4px;"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+          Gmail
+        </a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Camera Permission Dialog Modal -->
+  <div id="camera-modal" class="camera-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-info);"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+        <h3>Camera Feed Request</h3>
+      </div>
+      <p>Traffic Lens requires camera access to process real-time traffic signs and predict road hazards on your system.</p>
+      <div class="modal-actions">
+        <button class="btn-modal cancel" id="btn-camera-deny">Deny</button>
+        <button class="btn-modal confirm" id="btn-camera-allow">Allow Feed</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CDNs for WebSockets and ChartJS -->
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- Modular Frontend Scripts (ES6 Module Entrypoint) -->
+  <script type="module" src="../static/js/app.js"></script>
+</body>
+</html>

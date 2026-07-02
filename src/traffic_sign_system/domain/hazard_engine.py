@@ -25,25 +25,16 @@ class HazardEngine:
 
         self.cooldown_sec  = hz_cfg.get("alert_cooldown_sec", 3)
         self.window_size   = inf_cfg.get("smoothing_window", 3)
-        self.audio_enabled = hz_cfg.get("audio_enabled", False)
-        self.tts_enabled   = hz_cfg.get("tts_enabled", False)
+        self.audio_enabled = False
+        self.tts_enabled   = False
 
         self._last_alert: Dict[int, float] = {}
         self._window: deque = deque(maxlen=self.window_size)
         self.active_alerts: List[Dict] = []
+        self.current_alerts: Dict[int, Dict] = {} # Keeps track of active warnings with timestamp
         self._lock = threading.Lock()
-
-        # Safe TTS initialization (only once)
         self.engine = None
         self.last_spoken = 0
-        if self.tts_enabled:
-            try:
-                import pyttsx3
-                self.engine = pyttsx3.init()
-                self.engine.setProperty("rate", 160)
-            except Exception as e:
-                print(f"[TTS INIT ERROR] {e}")
-                self.engine = None
 
     # -- Core update -----------------------------------------------------------
     def update(self, detections: List[Dict]) -> List[Dict]:
@@ -53,29 +44,37 @@ class HazardEngine:
         with self._lock:
             self._window.append(frame_classes)
             all_ids = [cid for frame in self._window for cid in frame]
-            if not all_ids:
-                self.active_alerts = []
-                return []
-
+            
+            # temporal smoothing majority vote
             id_counts = Counter(all_ids)
             threshold = max(1, len(self._window) // 2)
             stable_ids = [cid for cid, cnt in id_counts.items() if cnt >= threshold]
 
-            alerts = []
+            # Update last seen timestamp for currently visible stable detections
             for cid in stable_ids:
                 hz   = get_hazard(cid)
                 last = self._last_alert.get(cid, 0)
                 if now - last >= self.cooldown_sec:
                     self._last_alert[cid] = now
-                    alerts.append(hz)
+                    self.current_alerts[cid] = {
+                        "alert": hz,
+                        "last_seen": now
+                    }
 
+            # Filter out alerts that have been unseen for more than 3 seconds
+            self.current_alerts = {
+                cid: item for cid, item in self.current_alerts.items()
+                if now - item["last_seen"] < 3.0
+            }
+
+            alerts = [item["alert"] for item in self.current_alerts.values()]
             alerts.sort(
                 key=lambda h: HAZARD_LEVEL_PRIORITY.get(h["level"], 0),
                 reverse=True,
             )
             self.active_alerts = alerts
 
-        if alerts:
+        if stable_ids and alerts:
             self._dispatch_alerts(alerts)
         return alerts
 
@@ -134,6 +133,7 @@ class HazardEngine:
             self._window.clear()
             self.active_alerts = []
             self._last_alert.clear()
+            self.current_alerts.clear()
 
     @staticmethod
     def hazard_level_color(level: str) -> tuple:

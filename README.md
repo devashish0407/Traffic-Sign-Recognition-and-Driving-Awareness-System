@@ -31,7 +31,6 @@ traffic_sign_system-main/
 +-- data/                # Raw and processed datasets
 +-- artifacts/           # Checkpoints, logs, plots, and model weights
 +-- assets/              # Sample videos and media
-+-- docs/                # Reports and project notes
 +-- requirements.txt     # Python dependencies
 +-- pyproject.toml       # Package metadata
 ```
