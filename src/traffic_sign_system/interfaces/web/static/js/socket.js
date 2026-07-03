@@ -7,7 +7,7 @@ let socket = null;
 export function connectSocket(onStats) {
   // Initialize relative Socket.IO connection
   socket = io({
-    transports: ['websocket', 'polling']
+    transports: ['websocket']
   });
 
   socket.on('connect', () => {
