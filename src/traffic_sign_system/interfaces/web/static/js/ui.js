@@ -202,6 +202,7 @@ function stopStream(onSourceChange) {
   el.visualizerIdleOverlay.classList.remove('hidden');
   el.streamControls.classList.add('hidden');
   resetDetectedSigns();
+  resetThreats();
 }
 
 function resetDetectedSigns() {
@@ -209,6 +210,13 @@ function resetDetectedSigns() {
   el.signsList.innerHTML = '';
   el.signsList.classList.add('hidden');
   el.noSigns.classList.remove('hidden');
+}
+
+function resetThreats() {
+  el.statAlerts.innerText = '0';
+  el.threatsGrid.innerHTML = '';
+  el.threatsGrid.classList.add('hidden');
+  el.noThreats.classList.remove('hidden');
 }
 
 function startStream(sourcePath, onSourceChange) {
@@ -363,7 +371,7 @@ export function updateDashboardUI(stats) {
   }
 
   // Render Detected Signs progress items
-  const dets = stats.current_dets || [];
+  const dets = (streamActive && !stats.video_ended) ? (stats.current_dets || []) : [];
   el.statSigns.innerText = dets.length;
   el.signsCount.innerText = `${dets.length} active`;
 
@@ -398,7 +406,8 @@ export function updateDashboardUI(stats) {
   }
 
   // Render Active Threats Banners
-  const alerts = (stats.alerts || []).filter(a => a.level === 'critical' || a.level === 'warning');
+  const alerts = (streamActive && !stats.video_ended) ? 
+    (stats.alerts || []).filter(a => a.level === 'critical' || a.level === 'warning') : [];
   el.statAlerts.innerText = alerts.length;
 
   if (alerts.length === 0) {
@@ -439,6 +448,7 @@ async function showSessionCompletedSummary() {
   el.visualizerIdleOverlay.classList.remove('hidden');
   el.streamControls.classList.add('hidden');
   resetDetectedSigns();
+  resetThreats();
   
   el.videoCompletedOverlay.classList.remove('hidden');
   
