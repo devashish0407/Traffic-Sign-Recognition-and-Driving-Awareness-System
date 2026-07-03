@@ -251,7 +251,7 @@ class RealtimePipeline:
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (180, 180, 180), 1, cv2.LINE_AA)
             success, encoded = cv2.imencode(".jpg", placeholder)
             if success:
-                yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + encoded.tobytes() + b"\r\n"
+                yield encoded.tobytes()
             self.running = False
             return
 
