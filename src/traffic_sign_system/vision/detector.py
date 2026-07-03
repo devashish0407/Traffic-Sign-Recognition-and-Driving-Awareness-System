@@ -120,16 +120,19 @@ class TrafficSignDetector:
         Run inference on a single BGR frame.
         Returns list of dicts: {bbox, confidence, class_id, label}.
         """
+        predict_args = {
+            "source": frame,
+            "imgsz": self.img_size,
+            "conf": self.conf_threshold,
+            "iou": self.iou_threshold,
+            "device": self.device,
+            "verbose": False,
+        }
+        if self.use_half:
+            predict_args["half"] = True
+
         with torch.no_grad():
-            results = self.model.predict(
-                source=frame,
-                imgsz=self.img_size,
-                conf=self.conf_threshold,
-                iou=self.iou_threshold,
-                device=self.device,
-                half=self.use_half,  # ✅ FIX: controlled precision
-                verbose=False,
-            )
+            results = self.model.predict(**predict_args)
 
         detections = []
 

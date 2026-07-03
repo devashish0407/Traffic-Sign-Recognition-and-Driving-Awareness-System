@@ -9,9 +9,12 @@ Everything else – _process_frame, run(), HazardEngine, FPS math – is
 byte-for-byte identical to the original.
 """
 
+import os
 import queue
 import threading
 import time
+
+import torch
 
 import cv2
 import numpy as np
@@ -33,6 +36,22 @@ class RealtimePipeline:
         self.buf_size    = inf.get("frame_buffer_size", 1)
         self.frame_skip  = inf.get("classification_frame_skip", 2)
 
+        # Optimize CPU threads for container deployment to prevent thread contention
+        self.is_container = (os.environ.get("SPACE_ID") is not None) or os.path.exists("/.dockerenv")
+        if self.is_container:
+            torch.set_num_threads(2)
+            print("[Pipeline] Running in container. Capped PyTorch threads to 2.")
+
+        # Cache for intermediate frame predictions to boost FPS on CPU
+        self._cached_detections = []
+        self._cached_alerts = []
+        self._cached_timings = {
+            "detect_ms": 0.0,
+            "classify_ms": 0.0,
+            "hazard_ms": 0.0,
+            "total_ms": 0.0,
+        }
+
         yolo_w = cfg["paths"]["yolo_weights"]
         cnn_w  = cfg["paths"]["cnn_weights"]
 
@@ -40,6 +59,14 @@ class RealtimePipeline:
         self.classifier   = TrafficSignClassifier(cnn_w, cfg)
         self.preprocessor = FramePreprocessor(cfg["cnn"]["img_size"])
         self.hazard       = HazardEngine(cfg)
+
+        # Dynamically set detection frame skip based on hardware:
+        # If CPU-only, default to 4-frame skip to maintain high FPS. If GPU is available, default to 1 (no skip).
+        is_cpu = (self.detector.device == "cpu")
+        default_skip = 4 if is_cpu else 1
+        self.detection_frame_skip = inf.get("detection_frame_skip", default_skip)
+        print(f"[Pipeline] Inference device: {self.detector.device}. Detection frame skip set to: {self.detection_frame_skip}")
+
         # self.logger is used only by run() (OpenCV window mode).
         # iter_frames() creates its own per-session logger so close() on one
         # session never corrupts the next.
@@ -104,41 +131,68 @@ class RealtimePipeline:
         resize_dim = (416, 312) if is_file else (640, 480)
         frame = cv2.resize(frame, resize_dim)
 
-        detect_start = time.perf_counter()
-        detections   = self.detector.detect(frame)
-        detect_ms    = (time.perf_counter() - detect_start) * 1000.0
+        frame_count = self._stats["frame_count"]
+        # Skip detection/classification on intermediate frames to maintain high FPS on CPU
+        run_full_inference = (
+            self.detection_frame_skip <= 1 or 
+            frame_count % self.detection_frame_skip == 0 or 
+            frame_count == 0
+        )
 
-        classified   = []
-        classify_ms  = 0.0
-        for det in detections:
-            if self.frame_skip > 1 and self._stats["frame_count"] % self.frame_skip != 0:
+        if run_full_inference:
+            detect_start = time.perf_counter()
+            detections   = self.detector.detect(frame)
+            detect_ms    = (time.perf_counter() - detect_start) * 1000.0
+
+            classified   = []
+            classify_ms  = 0.0
+            for det in detections:
+                if self.frame_skip > 1 and frame_count % self.frame_skip != 0:
+                    classified.append(det)
+                    continue
+                tensor = self.preprocessor.preprocess_crop(frame, det["bbox"])
+                if tensor is None:
+                    continue
+                classify_start = time.perf_counter()
+                result         = self.classifier.classify(tensor)
+                classify_ms   += (time.perf_counter() - classify_start) * 1000.0
+                det["class_id"]  = result["class_id"]
+                det["confidence"] = result["confidence"]
+                det["label"]     = SIGN_LABELS.get(result["class_id"], "Unknown")
+                det["top_k"]     = result["top_k"]
                 classified.append(det)
-                continue
-            tensor = self.preprocessor.preprocess_crop(frame, det["bbox"])
-            if tensor is None:
-                continue
-            classify_start = time.perf_counter()
-            result         = self.classifier.classify(tensor)
-            classify_ms   += (time.perf_counter() - classify_start) * 1000.0
-            det["class_id"]  = result["class_id"]
-            det["confidence"] = result["confidence"]
-            det["label"]     = SIGN_LABELS.get(result["class_id"], "Unknown")
-            det["top_k"]     = result["top_k"]
-            classified.append(det)
 
-        hazard_start = time.perf_counter()
-        alerts       = self.hazard.update(classified)
-        hazard_ms    = (time.perf_counter() - hazard_start) * 1000.0
+            hazard_start = time.perf_counter()
+            alerts       = self.hazard.update(classified)
+            hazard_ms    = (time.perf_counter() - hazard_start) * 1000.0
+
+            self._cached_detections = classified
+            self._cached_alerts = alerts
+            self._cached_timings = {
+                "detect_ms":   detect_ms,
+                "classify_ms": classify_ms,
+                "hazard_ms":   hazard_ms,
+                "total_ms":    (time.perf_counter() - total_start) * 1000.0,
+            }
+        else:
+            classified = self._cached_detections
+            alerts     = self._cached_alerts
+            detect_ms    = 0.0
+            classify_ms  = 0.0
+            hazard_ms    = 0.0
 
         annotated = TrafficSignDetector.draw_detections(frame, classified, alerts)
         annotated = self._overlay_hud(annotated, classified, alerts)
 
-        timings = {
-            "detect_ms":   detect_ms,
-            "classify_ms": classify_ms,
-            "hazard_ms":   hazard_ms,
-            "total_ms":    (time.perf_counter() - total_start) * 1000.0,
-        }
+        if run_full_inference:
+            timings = self._cached_timings
+        else:
+            timings = {
+                "detect_ms":   detect_ms,
+                "classify_ms": classify_ms,
+                "hazard_ms":   hazard_ms,
+                "total_ms":    (time.perf_counter() - total_start) * 1000.0,
+            }
         return annotated, classified, alerts, timings
 
     # ------------------------------------------------------------------
@@ -160,15 +214,51 @@ class RealtimePipeline:
 
         # --- 2. Open capture --------------------------------------------------
         active_source = source if source is not None else self.cam_index
+        self.is_file_source = (source is not None)
+        
         cap = cv2.VideoCapture(active_source)
+        
+        # If webcam (index 0) fails to open, try fallback sources
+        if not cap.isOpened() and active_source == 0:
+            print("[Pipeline] WARNING: Cannot open default webcam (index 0). Trying index 1...")
+            cap = cv2.VideoCapture(1)
+            
+            if not cap.isOpened():
+                # Fall back to any uploaded video file to simulate the live feed
+                from traffic_sign_system.paths import project_path
+                upload_dir = project_path("artifacts/uploads")
+                fallback_videos = sorted(
+                    upload_dir.glob("*.mp4"),
+                    key=lambda p: p.stat().st_mtime,
+                    reverse=True
+                )
+                if fallback_videos:
+                    fallback_source = str(fallback_videos[0])
+                    print(f"[Pipeline] Webcam failed. Simulating live camera feed using uploaded video: {fallback_source}")
+                    cap = cv2.VideoCapture(fallback_source)
+                    self.is_file_source = True
+                else:
+                    print("[Pipeline] No uploaded video files found for fallback.")
+
         if not cap.isOpened():
-            raise RuntimeError(f"Cannot open video source: {active_source!r}")
+            print(f"[Pipeline] ERROR: Cannot open video source: {active_source!r}")
+            # Yield a clean offline placeholder frame to the browser instead of crashing the HTTP stream
+            placeholder = np.zeros((480, 640, 3), dtype=np.uint8)
+            placeholder[:] = (26, 17, 13) # dark background matching theme
+            cv2.putText(placeholder, "VIDEO SOURCE OFFLINE / CAMERA ERROR", (50, 220),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (90, 90, 220), 2, cv2.LINE_AA)
+            cv2.putText(placeholder, "Please upload a video or connect a webcam.", (80, 260),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (180, 180, 180), 1, cv2.LINE_AA)
+            success, encoded = cv2.imencode(".jpg", placeholder)
+            if success:
+                yield b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" + encoded.tobytes() + b"\r\n"
+            self.running = False
+            return
 
         # --- 3. Fresh per-session logger (avoids "I/O on closed file" crash) --
         session_logger = PipelineLogger(self.cfg["paths"]["logs"], session_id=session_id)
 
         # --- 4. Reset stats ---------------------------------------------------
-        self.is_file_source = (source is not None)
         self._session = self._new_session()
         self._session["started_at"] = time.time()
         self._stats.update({
