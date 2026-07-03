@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, Response
+from flask import Blueprint, render_template, Response, send_from_directory, current_app
 
 views_bp = Blueprint("views", __name__)
 
@@ -8,5 +8,8 @@ def index():
 
 @views_bp.route("/favicon.ico")
 def favicon():
-    # Return 204 No Content so browser favicon requests succeed cleanly without cluttering logs
-    return Response(status=204)
+    return send_from_directory(
+        current_app.static_folder,
+        "favicon.ico",
+        mimetype="image/vnd.microsoft.icon"
+    )
