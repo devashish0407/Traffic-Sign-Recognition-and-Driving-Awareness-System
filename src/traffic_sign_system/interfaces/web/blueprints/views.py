@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, Response, send_from_directory, current_app
+import os
 
 views_bp = Blueprint("views", __name__)
 
@@ -9,7 +10,7 @@ def index():
 @views_bp.route("/favicon.ico")
 def favicon():
     return send_from_directory(
-        current_app.static_folder,
+        os.path.join(current_app.static_folder, "logo"),
         "favicon.ico",
         mimetype="image/vnd.microsoft.icon"
     )
