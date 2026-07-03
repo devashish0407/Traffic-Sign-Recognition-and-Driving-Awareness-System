@@ -57,6 +57,7 @@ inference:
   frame_buffer_size: 5
   smoothing_window: 3
   classification_frame_skip: 2
+  detection_frame_skip: 4  # Skip detection on intermediate frames (e.g. 4) on CPU to boost FPS, set to 1 for GPU
 
 dashboard:
   host: "0.0.0.0"
